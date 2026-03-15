@@ -35,21 +35,23 @@ export async function GET(request: NextRequest) {
         // Rate limit: free tier is 5 RPM for gemini-2.5-flash
         if (i > 0) await delay(DELAY_BETWEEN_CALLS_MS);
 
+        // Check if topic exists with prompts already
         const existing = await prisma.topic.findFirst({
           where: {
             title: item.title,
             fetchedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
           },
+          include: { _count: { select: { prompts: true } } },
         });
 
-        if (existing) continue;
+        if (existing && existing._count.prompts > 0) continue;
 
-        // Single API call: classify + generate
         const result = await classifyAndGenerate(item.title, item.description);
         const categoryId =
           categoryMap.get(result.category) ?? categoryMap.get("新闻")!;
 
-        const topic = await prisma.topic.create({
+        // Reuse existing topic or create new one
+        const topic = existing ?? await prisma.topic.create({
           data: {
             title: item.title,
             description: item.description,
