@@ -28,6 +28,16 @@ Reply with ONLY the category name in Chinese, nothing else.`;
   return validCategories.includes(text) ? text : "新闻";
 }
 
+function stringifyField(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value !== null) {
+    return Object.entries(value)
+      .map(([key, val]) => `【${key}】\n${val}`)
+      .join("\n\n");
+  }
+  return String(value);
+}
+
 export async function generateVideoPrompts(
   title: string,
   description: string,
@@ -42,28 +52,27 @@ Topic: ${title}
 Description: ${description}
 Category: ${category}
 
-Generate a JSON response with these exact fields:
+Generate a JSON response with these exact fields. ALL values MUST be plain strings, NOT nested objects:
 {
   "aiVideoPrompt": "A detailed visual scene description for AI video generation tools (like Sora, Runway, Kling). Include camera angles, lighting, atmosphere, visual style, motion, and mood. Should be 3-5 sentences, highly descriptive and cinematic.",
-  "videoScript": "A complete video script with: 1) Hook/Opening (attention-grabbing first 5 seconds), 2) Main Content (key talking points with transitions), 3) Call to Action/Closing. Format with clear sections. Target 60-90 seconds.",
+  "videoScript": "A SINGLE STRING containing the complete video script. Use newlines within the string for sections: Hook/Opening, Main Content, Call to Action. Target 60-90 seconds. Do NOT use a nested JSON object.",
   "style": "The video style (one of: 解说, Vlog, 动画, 新闻播报, 教程, 纪录片风格, 短剧)",
   "duration": "Recommended duration (e.g., 60秒, 90秒, 3分钟)",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
 }
 
-IMPORTANT: Respond with ONLY valid JSON, no markdown formatting or code blocks.`;
+CRITICAL: "videoScript" must be a flat string, NOT a JSON object. Respond with ONLY valid JSON.`;
 
   const result = await model.generateContent(prompt);
   const text = result.response.text().trim();
 
-  // Strip markdown code block wrappers if present
   const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
 
   try {
     const parsed = JSON.parse(cleaned);
     return {
-      aiVideoPrompt: parsed.aiVideoPrompt || "",
-      videoScript: parsed.videoScript || "",
+      aiVideoPrompt: stringifyField(parsed.aiVideoPrompt),
+      videoScript: stringifyField(parsed.videoScript),
       style: parsed.style || "解说",
       duration: parsed.duration || "60秒",
       tags: Array.isArray(parsed.tags) ? parsed.tags : [],
@@ -72,10 +81,14 @@ IMPORTANT: Respond with ONLY valid JSON, no markdown formatting or code blocks.`
     console.error("Failed to parse Gemini response:", text);
     return {
       aiVideoPrompt: `Create a visually compelling video about "${title}". ${description}`,
-      videoScript: `Opening: Today we explore ${title}.\n\nMain: ${description}\n\nClosing: Stay tuned for more trending content.`,
+      videoScript: `【开场】\n今天我们来聊聊 ${title}。\n\n【正文】\n${description}\n\n【结尾】\n关注我获取更多热门话题内容。`,
       style: "解说",
       duration: "60秒",
       tags: [category],
     };
   }
+}
+
+export function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

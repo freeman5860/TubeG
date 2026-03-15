@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { fetchAllTrending } from "@/lib/sources";
-import { classifyTopic, generateVideoPrompts } from "@/lib/gemini";
+import { classifyTopic, generateVideoPrompts, delay } from "@/lib/gemini";
 import type { Category } from "@/generated/prisma/client";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -28,10 +28,14 @@ export async function GET(request: NextRequest) {
     const categories = await prisma.category.findMany();
     const categoryMap = new Map(categories.map((c: Category) => [c.name, c.id]));
 
-    for (const item of trendingItems.slice(0, 20)) {
+    for (let i = 0; i < Math.min(trendingItems.length, 10); i++) {
+      const item = trendingItems[i];
       try {
-        // Classify the topic
+        // Rate limit: wait between API calls (free tier: 5 RPM)
+        if (i > 0) await delay(13000);
+
         const categoryName = await classifyTopic(item.title, item.description);
+        await delay(13000);
         const categoryId =
           categoryMap.get(categoryName) ?? categoryMap.get("新闻")!;
 
