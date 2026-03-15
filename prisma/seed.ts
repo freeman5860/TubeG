@@ -1,10 +1,12 @@
-import { Pool } from "@neondatabase/serverless";
+import "dotenv/config";
+import ws from "ws";
+import { neonConfig } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "../src/generated/prisma/client";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const adapter = new PrismaNeon(pool as any);
+neonConfig.webSocketConstructor = ws;
+
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
 const categories = [
