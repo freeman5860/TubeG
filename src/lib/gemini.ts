@@ -11,7 +11,7 @@ function getGeminiClient() {
 
 export async function classifyTopic(title: string, description: string): Promise<string> {
   const genAI = getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `Given the following trending topic, classify it into exactly ONE of these categories:
 科技, 娱乐, 游戏, 新闻, 生活, 教育, 财经, 体育
@@ -34,7 +34,7 @@ export async function generateVideoPrompts(
   category: string
 ): Promise<GeneratedPrompt> {
   const genAI = getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `You are a professional video content strategist. Given a trending topic, generate content for video creation.
 
