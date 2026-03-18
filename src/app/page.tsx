@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TopicCard } from "@/components/topic-card";
 import { PromptCard } from "@/components/prompt-card";
+import { RunPipelineButton } from "@/components/run-pipeline-button";
 import { Flame, Sparkles, Clock, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
@@ -41,11 +42,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">仪表盘</h1>
-        <p className="text-muted-foreground mt-1">
-          网络热门话题追踪与视频 Prompt 自动生成
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">仪表盘</h1>
+          <p className="text-muted-foreground mt-1">
+            网络热门话题追踪与视频 Prompt 自动生成
+          </p>
+        </div>
+        <RunPipelineButton />
       </div>
 
       {/* Stats */}
@@ -157,6 +161,7 @@ export default async function DashboardPage() {
                   generatedAt: prompt.generatedAt.toISOString(),
                   topic: prompt.topic
                     ? {
+                        id: prompt.topic.id,
                         title: prompt.topic.title,
                         category: prompt.topic.category,
                       }

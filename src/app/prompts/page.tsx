@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { PromptCard } from "@/components/prompt-card";
+import { CategoryFilter } from "@/components/category-filter";
+import { Pagination } from "@/components/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
+
+const PAGE_SIZE = 12;
+
+interface Category {
+  id: string;
+  name: string;
+  _count?: { topics: number };
+}
 
 interface Prompt {
   id: string;
@@ -13,8 +24,10 @@ interface Prompt {
   style: string | null;
   duration: string | null;
   tags: string | null;
+  selected: boolean;
   generatedAt: string;
   topic?: {
+    id: string;
     title: string;
     category?: { name: string } | null;
   };
@@ -22,19 +35,70 @@ interface Prompt {
 
 export default function PromptsPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+
+  const fetchPrompts = useCallback(async () => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (selectedCategory) params.set("category", selectedCategory);
+    if (selectedSource) params.set("source", selectedSource);
+    params.set("limit", String(PAGE_SIZE));
+    params.set("offset", String((page - 1) * PAGE_SIZE));
+
+    try {
+      const res = await fetch(`/api/prompts?${params}`);
+      const data = await res.json();
+      setPrompts(data.prompts ?? []);
+      setTotal(data.total ?? 0);
+    } catch (error) {
+      console.error("Failed to fetch prompts:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCategory, selectedSource, page]);
 
   useEffect(() => {
-    fetch("/api/prompts?limit=30")
+    fetch("/api/categories")
       .then((r) => r.json())
-      .then((data) => {
-        setPrompts(data.prompts ?? []);
-        setTotal(data.total ?? 0);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .then(setCategories)
+      .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    fetchPrompts();
+  }, [fetchPrompts]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory, selectedSource]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const sources = [
+    { id: "google_trends", label: "Google" },
+    { id: "youtube", label: "YouTube" },
+    { id: "reddit", label: "Reddit" },
+  ];
+
+  function handleToggleSelected(id: string, selected: boolean) {
+    setPrompts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, selected } : p))
+    );
+    fetch("/api/prompts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, selected }),
+    }).catch(() => {
+      setPrompts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, selected: !selected } : p))
+      );
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -43,6 +107,40 @@ export default function PromptsPage() {
         <p className="text-muted-foreground mt-1">
           AI 自动生成的视频创作 Prompt 和脚本 · 共 {total} 条
         </p>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-medium mb-2">题材分类</p>
+          <CategoryFilter
+            categories={categories}
+            selected={selectedCategory}
+            onChange={setSelectedCategory}
+          />
+        </div>
+        <div>
+          <p className="text-sm font-medium mb-2">数据来源</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setSelectedSource(null)}>
+              <Badge
+                variant={selectedSource === null ? "default" : "outline"}
+                className="cursor-pointer"
+              >
+                全部
+              </Badge>
+            </button>
+            {sources.map((s) => (
+              <button key={s.id} onClick={() => setSelectedSource(s.id)}>
+                <Badge
+                  variant={selectedSource === s.id ? "default" : "outline"}
+                  className="cursor-pointer"
+                >
+                  {s.label}
+                </Badge>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -60,7 +158,11 @@ export default function PromptsPage() {
       ) : prompts.length > 0 ? (
         <div className="space-y-4">
           {prompts.map((prompt) => (
-            <PromptCard key={prompt.id} prompt={prompt} />
+            <PromptCard
+              key={prompt.id}
+              prompt={prompt}
+              onToggleSelected={handleToggleSelected}
+            />
           ))}
         </div>
       ) : (
@@ -69,11 +171,13 @@ export default function PromptsPage() {
             <Sparkles className="h-12 w-12 mb-4 opacity-50" />
             <p className="text-lg font-medium">暂无 Prompt</p>
             <p className="text-sm mt-1">
-              等待热门话题抓取后自动生成
+              调整筛选条件或等待热门话题抓取后自动生成
             </p>
           </CardContent>
         </Card>
       )}
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }

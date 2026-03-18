@@ -5,11 +5,19 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const topicId = searchParams.get("topicId");
-    const limit = parseInt(searchParams.get("limit") ?? "30");
+    const category = searchParams.get("category");
+    const source = searchParams.get("source");
+    const limit = parseInt(searchParams.get("limit") ?? "20");
     const offset = parseInt(searchParams.get("offset") ?? "0");
 
     const where: Record<string, unknown> = {};
     if (topicId) where.topicId = topicId;
+    if (category || source) {
+      const topicWhere: Record<string, unknown> = {};
+      if (category) topicWhere.categoryId = category;
+      if (source) topicWhere.source = source;
+      where.topic = topicWhere;
+    }
 
     const [prompts, total] = await Promise.all([
       prisma.prompt.findMany({

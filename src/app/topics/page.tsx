@@ -3,10 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { TopicCard } from "@/components/topic-card";
 import { CategoryFilter } from "@/components/category-filter";
+import { Pagination } from "@/components/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Flame } from "lucide-react";
+
+const PAGE_SIZE = 12;
 
 interface Category {
   id: string;
@@ -33,19 +36,27 @@ export default function TopicsPage() {
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
 
   const fetchTopics = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
     if (selectedCategory) params.set("category", selectedCategory);
     if (selectedSource) params.set("source", selectedSource);
+    params.set("limit", String(PAGE_SIZE));
+    params.set("offset", String((page - 1) * PAGE_SIZE));
 
-    const res = await fetch(`/api/topics?${params}`);
-    const data = await res.json();
-    setTopics(data.topics ?? []);
-    setTotal(data.total ?? 0);
-    setLoading(false);
-  }, [selectedCategory, selectedSource]);
+    try {
+      const res = await fetch(`/api/topics?${params}`);
+      const data = await res.json();
+      setTopics(data.topics ?? []);
+      setTotal(data.total ?? 0);
+    } catch (error) {
+      console.error("Failed to fetch topics:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCategory, selectedSource, page]);
 
   useEffect(() => {
     fetch("/api/categories")
@@ -57,6 +68,12 @@ export default function TopicsPage() {
   useEffect(() => {
     fetchTopics();
   }, [fetchTopics]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory, selectedSource]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const sources = [
     { id: "google_trends", label: "Google" },
@@ -73,7 +90,6 @@ export default function TopicsPage() {
         </p>
       </div>
 
-      {/* Filters */}
       <div className="space-y-3">
         <div>
           <p className="text-sm font-medium mb-2">题材分类</p>
@@ -108,7 +124,6 @@ export default function TopicsPage() {
         </div>
       </div>
 
-      {/* Topic Grid */}
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -138,6 +153,8 @@ export default function TopicsPage() {
           </CardContent>
         </Card>
       )}
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }

@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Copy, Video, FileText } from "lucide-react";
+import { Check, Copy, Video, FileText, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PromptCardProps {
   id: string;
@@ -20,14 +21,22 @@ interface PromptCardProps {
   style: string | null;
   duration: string | null;
   tags: string | null;
+  selected?: boolean;
   generatedAt: string;
   topic?: {
+    id?: string;
     title: string;
     category?: { name: string } | null;
   };
 }
 
-export function PromptCard({ prompt }: { prompt: PromptCardProps }) {
+export function PromptCard({
+  prompt,
+  onToggleSelected,
+}: {
+  prompt: PromptCardProps;
+  onToggleSelected?: (id: string, selected: boolean) => void;
+}) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const tags: string[] = (() => {
     try {
@@ -46,16 +55,48 @@ export function PromptCard({ prompt }: { prompt: PromptCardProps }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        {prompt.topic && (
-          <CardDescription className="font-medium text-foreground">
-            {prompt.topic.title}
-          </CardDescription>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          {prompt.style && <Badge variant="secondary">{prompt.style}</Badge>}
-          {prompt.duration && <Badge variant="outline">{prompt.duration}</Badge>}
-          {prompt.topic?.category && (
-            <Badge variant="outline">{prompt.topic.category.name}</Badge>
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1.5 min-w-0">
+            {prompt.topic &&
+              (prompt.topic.id ? (
+                <Link href={`/topics/${prompt.topic.id}`}>
+                  <CardDescription className="font-medium text-foreground hover:text-primary transition-colors">
+                    {prompt.topic.title}
+                  </CardDescription>
+                </Link>
+              ) : (
+                <CardDescription className="font-medium text-foreground">
+                  {prompt.topic.title}
+                </CardDescription>
+              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              {prompt.style && (
+                <Badge variant="secondary">{prompt.style}</Badge>
+              )}
+              {prompt.duration && (
+                <Badge variant="outline">{prompt.duration}</Badge>
+              )}
+              {prompt.topic?.category && (
+                <Badge variant="outline">{prompt.topic.category.name}</Badge>
+              )}
+            </div>
+          </div>
+          {onToggleSelected && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 flex-shrink-0"
+              onClick={() => onToggleSelected(prompt.id, !prompt.selected)}
+            >
+              <Star
+                className={cn(
+                  "h-4 w-4",
+                  prompt.selected
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-muted-foreground"
+                )}
+              />
+            </Button>
           )}
         </div>
       </CardHeader>
