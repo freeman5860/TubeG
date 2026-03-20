@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Flame, LayoutDashboard, FileText, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./theme-toggle";
 
 const navItems = [
   { href: "/", label: "仪表盘", icon: LayoutDashboard },
@@ -22,7 +23,7 @@ export function Navbar() {
           <span className="text-xl font-bold">TubeG</span>
         </Link>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-1 flex-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -46,6 +47,8 @@ export function Navbar() {
             );
           })}
         </nav>
+
+        <ThemeToggle />
       </div>
     </header>
   );

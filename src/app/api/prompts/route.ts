@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,17 +8,30 @@ export async function GET(request: NextRequest) {
     const topicId = searchParams.get("topicId");
     const category = searchParams.get("category");
     const source = searchParams.get("source");
+    const search = searchParams.get("search");
     const limit = parseInt(searchParams.get("limit") ?? "20");
     const offset = parseInt(searchParams.get("offset") ?? "0");
 
-    const where: Record<string, unknown> = {};
-    if (topicId) where.topicId = topicId;
+    const conditions: Prisma.PromptWhereInput[] = [];
+    if (topicId) conditions.push({ topicId });
     if (category || source) {
-      const topicWhere: Record<string, unknown> = {};
+      const topicWhere: Prisma.TopicWhereInput = {};
       if (category) topicWhere.categoryId = category;
       if (source) topicWhere.source = source;
-      where.topic = topicWhere;
+      conditions.push({ topic: topicWhere });
     }
+    if (search) {
+      conditions.push({
+        OR: [
+          { aiVideoPrompt: { contains: search, mode: "insensitive" } },
+          { videoScript: { contains: search, mode: "insensitive" } },
+          { topic: { title: { contains: search, mode: "insensitive" } } },
+        ],
+      });
+    }
+
+    const where: Prisma.PromptWhereInput =
+      conditions.length > 0 ? { AND: conditions } : {};
 
     const [prompts, total] = await Promise.all([
       prisma.prompt.findMany({

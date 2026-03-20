@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { TopicCard } from "@/components/topic-card";
 import { CategoryFilter } from "@/components/category-filter";
+import { SearchInput } from "@/components/search-input";
 import { Pagination } from "@/components/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +35,7 @@ export default function TopicsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -43,6 +45,7 @@ export default function TopicsPage() {
     const params = new URLSearchParams();
     if (selectedCategory) params.set("category", selectedCategory);
     if (selectedSource) params.set("source", selectedSource);
+    if (search) params.set("search", search);
     params.set("limit", String(PAGE_SIZE));
     params.set("offset", String((page - 1) * PAGE_SIZE));
 
@@ -56,7 +59,7 @@ export default function TopicsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, selectedSource, page]);
+  }, [selectedCategory, selectedSource, search, page]);
 
   useEffect(() => {
     fetch("/api/categories")
@@ -71,7 +74,7 @@ export default function TopicsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [selectedCategory, selectedSource]);
+  }, [selectedCategory, selectedSource, search]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -89,6 +92,12 @@ export default function TopicsPage() {
           来自多个平台的实时热门话题 · 共 {total} 条
         </p>
       </div>
+
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="搜索话题…"
+      />
 
       <div className="space-y-3">
         <div>

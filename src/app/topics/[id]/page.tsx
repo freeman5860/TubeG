@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SourceBadge } from "@/components/source-badge";
 import { PromptCard } from "@/components/prompt-card";
+import { RegenerateButton } from "@/components/regenerate-button";
 import { ArrowLeft, ExternalLink, Sparkles } from "lucide-react";
 import Link from "next/link";
 
@@ -68,9 +69,12 @@ export default async function TopicDetailPage({ params }: PageProps) {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-4">
-          视频 Prompt ({topic.prompts.length})
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">
+            视频 Prompt ({topic.prompts.length})
+          </h2>
+          <RegenerateButton topicId={topic.id} />
+        </div>
         {topic.prompts.length > 0 ? (
           <div className="space-y-4">
             {topic.prompts.map((prompt: typeof topic.prompts[number]) => (
